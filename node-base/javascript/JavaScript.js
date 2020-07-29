@@ -131,3 +131,107 @@ users.forEach(function(item, index) {
     console.log('배열 원소 #' + index + ' : ' + item.name);
 })
 
+// 배열 조작
+console.dir(users);
+/*
+    [
+      { name: '홍길동', age: 20 },
+      { name: '감감찬', age: 50 },
+      { name: '이순신', age: 60 }
+    ]
+*/
+console.log('users 배열의 개수 : ' + users.length); // 3
+users.push({name:'유관순', age: 18});
+console.log('users 배열의 개수 : ' + users.length); // 4
+/*
+    [
+      { name: '홍길동', age: 20 },
+      { name: '감감찬', age: 50 },
+      { name: '이순신', age: 60 },
+      { name: '유관순', age: 18 }
+    ]
+*/
+const pop_element = users.pop(); // pop된 요소
+console.dir(pop_element); // { name: '유관순', age: 18 }
+
+// 배열의 제일 앞에 데이터 넣기
+users.unshift({name:'유관순', age: 18});
+console.dir(users);
+/*
+    [
+      { name: '유관순', age: 18 },
+      { name: '홍길동', age: 20 },
+      { name: '감감찬', age: 50 },
+      { name: '이순신', age: 60 }
+    ]
+ */
+
+// 배열의 제일 앞에 데이터 빼기
+users.shift();
+console.dir(users);
+
+/*
+    [
+      { name: '홍길동', age: 20 },
+      { name: '감감찬', age: 50 },
+      { name: '이순신', age: 60 }
+    ]
+ */
+
+// delete :: 배열 원소의 개수는 그대로 이다.
+delete users[1];    // users 두번째 요소를 삭제
+console.dir(users);
+// [ { name: '홍길동', age: 20 }, <1 empty item>, { name: '이순신', age: 60 } ]
+users.forEach(function(item, index) {
+    console.log('원소 #' + index + '  이름 : ' + item.name);
+})
+/*
+    원소 #0  이름 : 홍길동
+    원소 #2  이름 : 이순신
+ */
+
+// 배열의 삭제는 slice를 사용
+// 인자 : 1. 지우고 싶은 위치, 2. 지우고 싶은 개수
+// 인자 : 1. 추가하고 싶은 위치, 2. 0(추가), 3. 데이터
+
+// 추가
+users.splice(1, 0, {name:'김준연', age:39});
+console.dir(users);
+/*
+    [
+      { name: '홍길동', age: 20 },
+      { name: '김준연', age: 39 },
+      <1 empty item>,
+      { name: '이순신', age: 60 }
+    ]
+ */
+console.log('users 배열의 길이 ' + users.length); // 4
+
+// 삭제
+users.splice(2, 1);// 두번째 위치에서 한개 삭제
+console.dir(users);
+/*
+    [
+      { name: '홍길동', age: 20 },
+      { name: '김준연', age: 39 },
+      { name: '이순신', age: 60 }
+    ]
+
+ */
+
+// slice --> (1) 두번째 에서 (2) 세번째 까지 복사
+const users2 = users.slice(1, 2);
+console.log('users 객체'); console.dir(users);
+/*
+    users 객체
+    [
+      { name: '홍길동', age: 20 },
+      { name: '김준연', age: 39 },
+      { name: '이순신', age: 60 }
+    ]
+*/
+console.log('users2 객체'); console.dir(users2);
+/*
+    users2 객체
+    [ { name: '김준연', age: 39 } ]
+*/
