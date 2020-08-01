@@ -50,42 +50,33 @@ router.route('/process/login').post(function (req, res){
 
     console.log('요청 파라미터 : ' + _id + ' , ' + _pw);
 
-    if(database) {
-        // 데이터 베이스가 설정되어 있으면
-        authUser(database, _id, _pw, function (err, docs){
-            if(err) {
-                console.log('에러 발생.');
-                res.writeHead(200, {"Content-Type":"text/html;charset=utf8"});
-                res.write('<h1>몽고디비 검색시 에러 발생</h1>');
-                res.end();
-            }
+    authUser(_id, _pw,function (err, rows){
+        if(err) {
+            console.log('에러 발생.');
+            res.writeHead(200, {"Content-Type":"text/html;charset=utf8"});
+            res.write('<h1>몽고디비 검색시 에러 발생</h1>');
+            res.end();
+        }
 
-            if(docs) {
-                // 데이터가 있는 경우
-                console.dir(docs);
-                res.writeHead(200, {"Content-Type":"text/html;charset=utf8"});
-                res.write('<h1>사용자 로그인 성공</h1>');
-                res.write('<div><p>사용자 : ' + docs[0].name + '</div>');
-                res.write('<br><br><a href="/login.html">다시 로그인 하기</a>');
-                res.end();
-            }
-            else {
-                // 데이터가 없는 경우
-                console.log('에러발생 : 조회 데이터 없음');
-                res.writeHead(200, {"Content-Type":"text/html;charset=utf8"});
-                res.write('<h1>사용자 데이터 조회 안됨</h1>');
-                res.write('<br><br><a href="/login.html">다시 로그인 하기</a>');
-                res.end();
-            }
-        });
-    }
-    else {
-        console.log('에러발생 : 데이터 베이스 정의 안됨');
-        res.writeHead(200, {"Content-Type":"text/html;charset=utf8"});
-        res.write('<h1>데이터 베이스 정의 안됨</h1>');
-        res.end();
-    }
-})
+        if(rows) {
+            // 데이터가 있는 경우
+            console.dir(rows);
+            res.writeHead(200, {"Content-Type":"text/html;charset=utf8"});
+            res.write('<h1>사용자 로그인 성공</h1>');
+            res.write('<div><p>사용자 : ' + rows[0].name + '</div>');
+            res.write('<br><br><a href="/login.html">다시 로그인 하기</a>');
+            res.end();
+        }
+        else {
+            // 데이터가 없는 경우
+            console.log('에러발생 : 조회 데이터 없음');
+            res.writeHead(200, {"Content-Type":"text/html;charset=utf8"});
+            res.write('<h1>사용자 데이터 조회 안됨</h1>');
+            res.write('<br><br><a href="/login.html">다시 로그인 하기</a>');
+            res.end();
+        }
+    });
+});
 
 router.route('/process/adduser').post(function (req, res){
     console.log('router : /process/adduser');
@@ -177,33 +168,44 @@ router.route('/process/listuser').post(function(req, res){
 app.use('/', router);
 
 // 함수 정의 :: find()
-const authUser = function (id, name, password, callback)
+const authUser = function (id, password, callback)
 {
     console.log('function : authUser');
+    console.log('아이디 :: ' + id + ' , ' + '패스워드 :: ' + password);
 
     // user 찾기
-    UserModel.findById(id, function(err, results){
-        if(err) {
-            console.log('mongoose find Error');
-            callback(err, null);        // 호출한 곳으로 에러 넘김
+    pool.getConnection(function (err, conn) {
+        if (err) {
+            if (conn) {
+                conn.release(); // connection 반납
+            }
+            callback(err, null);
             return;
         }
+        console.log('mysql 연결 스레드 아이디 : ' + conn.threadId);
 
-        console.log('아이디  %s로 검색', id);
-        if(results.length > 0) {
-            if(results[0]._doc.password === password) {
-                console.log('비밀번호 일치함');
-                callback(null, results);
+        const tablename = 'users';
+        const columns = ['name']
+        const exec = conn.query('select ?? from ?? where id = ? and password = ?',
+            [columns, tablename, id, password], function (err, rows){
+            console.log('실행된 sql : ' + exec.sql);
+
+            if (err) {
+                console.log('sql 실행시 에러 발생');
+                callback(err, null);
+                return;
+            }
+
+            if(rows.length > 0) {
+                // 찾은 경우
+                console.log('사용자 찾음');
+                callback(null, rows);
             }
             else {
-                console.log('비밀번호 일치하지 않음');
+                console.log('사용자 찾지 못함');
                 callback(null, null);
             }
-        }
-        else {
-            console.log('아이디 일치하는 사용자 없음');
-            callback(null, null);
-        }
+        });
     });
 };
 
@@ -219,7 +221,7 @@ const addUser = function (id, name, password, callback) {
             callback(err, null);
             return;
         }
-        console.log('데이터베이스 연결의 스레드 아이디 : ' + conn.threadId)
+        console.log('데이터베이스 연결의 스레드 아이디 : ' + conn.threadId);
 
         // sql 실행
         const data = {id: id, name: name, password: password};
@@ -232,7 +234,7 @@ const addUser = function (id, name, password, callback) {
                 callback(err, null);
                 return;
             }
-            callback(null, result);     //  정상실
+            callback(null, result);     //  정상실행
 
         })
     });
@@ -248,6 +250,6 @@ app.use(expressErrorHandler.httpError(404));
 app.use(errorHandler);
 
 server = http.createServer(app).listen(app.get('port'), function () {
-    console.log('익스프레스로 웹서버 실행 : http://localhost:' + app.get('port') + '/adduser.html');
+    console.log('익스프레스로 웹서버 실행 : http://localhost:' + app.get('port') + '/login.html');
 });
 
